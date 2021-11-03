@@ -23,36 +23,47 @@ const AuthForm = () => {
 
     setIsLoading(true);
 
+    let url;
+
     if (isLogin) {
+      url =
+        'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyBDiV-nsKVs1Cw4vjJBmMEnqjvBBrpTZco';
     } else {
-      fetch(
-        'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyBDiV-nsKVs1Cw4vjJBmMEnqjvBBrpTZco',
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            email: enteredEmail,
-            password: enteredPassword,
-            returnSecureToken: true,
-          }),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
-      ).then(res => {
+      url =
+        'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyBDiV-nsKVs1Cw4vjJBmMEnqjvBBrpTZco';
+    }
+
+    fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        email: enteredEmail,
+        password: enteredPassword,
+        returnSecureToken: true,
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+      .then(res => {
         setIsLoading(false);
         if (res.ok) {
-          // Do something here
+          return res.json();
         } else {
           return res.json().then(data => {
             let errorMessage = 'Authentication failed!';
             if (data && data.error && data.error.message) {
               errorMessage = data.error.message; // You'd want to parse this error message somehow; it's not entirely humanized here, but it'll do for this demo
             }
-            alert(errorMessage);
+            throw new Error(errorMessage);
           });
         }
+      })
+      .then(data => {
+        console.log(data);
+      })
+      .catch(err => {
+        alert(err.message);
       });
-    }
   };
 
   return (

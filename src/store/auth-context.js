@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 let logoutTimer;
 
@@ -18,32 +18,69 @@ const calculateRemainingTime = expirationTime => {
   return remainingDuration;
 };
 
+const retrieveStoredToken = () => {
+  const storedToken = localStorage.getItem('token');
+  const storedExpirationDate = localStorage.getItem('expirationTime');
+
+  const remainingTime = calculateRemainingTime(storedExpirationDate);
+
+  // If 'remainingTime' is less than one minute
+  if (remainingTime <= 60000) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('expirationTime');
+    return null;
+  }
+
+  return {
+    token: storedToken,
+    duration: remainingTime,
+  };
+};
+
 export const AuthContextProvider = props => {
-  const initialToken = localStorage.getItem('token'); // Will either be the stored token, or will be 'undefined' if the token doesn't exist
-  // Note that 'localStorage' is a synchronous API (hence we don't need to use async/await or anything similar)
+  const tokenData = retrieveStoredToken();
+  let initialToken; // Sets 'initialToken' as undefined
+  if (tokenData) {
+    initialToken = tokenData.token;
+  }
+
   const [token, setToken] = useState(initialToken);
-  // As the 'initialToken' is only used in the initial state, we won't override any state changes with the token
 
   const userIsLoggedIn = !!token;
 
-  const logoutHandler = () => {
+  // We add useCallback, because adding 'logoutHandler' as a dependency for 'useEffect()' (below), we would otherwise create an infinite loop
+  const logoutHandler = useCallback(() => {
     setToken(null);
-    localStorage.removeItem('token'); // Will remove the 'token' key/value (set above)
-    // An alternative to this would be to call 'localStorage.clear()', which erases all local storage for this site
+    localStorage.removeItem('token');
+    localStorage.removeItem('expirationTime');
 
     if (logoutTimer) {
       clearTimeout(logoutTimer);
     }
-  };
+  }, []);
+  // We don't need any dependencies because 'localStorage' and 'clearTimeout' are browser (not React) functions,
+  // 'setToken' is a state-updating function (which we never need to add)
+  // and 'logoutTimer' is a global variable which is outside of the React rendering flow, so doesn't need to be added
 
   const loginHandler = (token, expirationTime) => {
     setToken(token);
-    localStorage.setItem('token', token); // Side-note: localStorage can only store primitive data. If you want to store an object, for example, you have to convert it to JSON first (which would make it a string)
+    localStorage.setItem('token', token);
+    localStorage.setItem('expirationTime', expirationTime); // 'expirationTime' has to be a string, hence why we pass it as such ('expirationTime.toISOString()') from 'AuthForm.js'
 
     const remainingTime = calculateRemainingTime(expirationTime);
 
     logoutTimer = setTimeout(logoutHandler, remainingTime);
   };
+
+  // This effect sets the logoutTimer if we automatically logged-in the user (if they come back to the app, or reload the page)
+  // 'tokenData' is set when this 'AuthContextProvider' component is first rendered (which we only do in 'index.js'), so I assume (I'm guessing) that only happens when the app first loads
+  // It is set by calling 'retrieveStoredToken' above, which returns 'null' if the 'expirationTime' in local storage has (or is about to) expire
+  // If that's not the case, 'tokenData.duration' is the remaining time until the token expires, and we start a timer to call the 'logoutHandler' with this time remaining
+  useEffect(() => {
+    if (tokenData) {
+      logoutTimer = setTimeout(logoutHandler, tokenData.duration);
+    }
+  }, [tokenData, logoutHandler]); // 'tokenData' should only change initially
 
   const contextValue = {
     token: token,

@@ -1,9 +1,11 @@
 import { useRef, useContext } from 'react';
+import { useHistory } from 'react-router-dom';
 
 import AuthContext from '../../store/auth-context';
 import classes from './ProfileForm.module.css';
 
 const ProfileForm = () => {
+  const history = useHistory();
   const newPasswordInputRef = useRef();
   const authCtx = useContext(AuthContext);
 
@@ -29,7 +31,7 @@ const ProfileForm = () => {
       }
     ).then(res => {
       // Should add error handling. Here will assume that it always succeeds.
-      // Should provide some user feedback.
+      history.replace('/');
     });
   };
 

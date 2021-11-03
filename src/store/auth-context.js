@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 
+let logoutTimer;
+
 const AuthContext = React.createContext({
   token: '',
   isLoggedIn: false,
@@ -28,6 +30,10 @@ export const AuthContextProvider = props => {
     setToken(null);
     localStorage.removeItem('token'); // Will remove the 'token' key/value (set above)
     // An alternative to this would be to call 'localStorage.clear()', which erases all local storage for this site
+
+    if (logoutTimer) {
+      clearTimeout(logoutTimer);
+    }
   };
 
   const loginHandler = (token, expirationTime) => {
@@ -36,7 +42,7 @@ export const AuthContextProvider = props => {
 
     const remainingTime = calculateRemainingTime(expirationTime);
 
-    setTimeout(logoutHandler, remainingTime); // Will automatically call 'logoutHandler' and log the user out, once the remaining time expires
+    logoutTimer = setTimeout(logoutHandler, remainingTime);
   };
 
   const contextValue = {

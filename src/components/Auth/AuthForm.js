@@ -64,9 +64,13 @@ const AuthForm = () => {
         }
       })
       .then(data => {
-        authCtx.login(data.idToken); // The 'idToken' is a value returned from Firebase if login/sign-up was successful
-        history.replace('/'); // Redirects the user to the home page
-        // Using 'replace' (instead of 'push') means that the user can't use the 'back' button to go back to the previous page
+        const expirationTime = new Date(new Date().getTime() + +data.expiresIn * 1000); // 'expiresIn' is returned from the Firebase API, and is the number of seconds, as a string, until the 'idToken' expires
+        // This line converts that into the time, as a date object, when the 'idToken' expires and sets it to 'expirationTime'
+        // The '+' in front of '+data.expiresIn' converts it from a string to a number, then the '* 1000' converts it to milliseconds.
+        // It is then added onto the current time in milliseconds ('new Date().getTime()')
+
+        authCtx.login(data.idToken, expirationTime.toISOString()); // 'toISOString()' converts it to a string (because we convert it to a date object in 'calculateRemainingTime' in 'auth-context.js')
+        history.replace('/');
       })
       .catch(err => {
         alert(err.message);

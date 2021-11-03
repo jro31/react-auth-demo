@@ -1,9 +1,11 @@
 import { useState, useRef, useContext } from 'react';
-import AuthContext from '../../store/auth-context';
+import { useHistory } from 'react-router-dom';
 
+import AuthContext from '../../store/auth-context';
 import classes from './AuthForm.module.css';
 
 const AuthForm = () => {
+  const history = useHistory();
   const emailInputRef = useRef();
   const passwordInputRef = useRef();
 
@@ -63,6 +65,8 @@ const AuthForm = () => {
       })
       .then(data => {
         authCtx.login(data.idToken); // The 'idToken' is a value returned from Firebase if login/sign-up was successful
+        history.replace('/'); // Redirects the user to the home page
+        // Using 'replace' (instead of 'push') means that the user can't use the 'back' button to go back to the previous page
       })
       .catch(err => {
         alert(err.message);
